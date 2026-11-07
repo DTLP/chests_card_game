@@ -139,7 +139,8 @@ func main() {
 
 	// Game loop
 	round := 0
-	for {
+	gameOver := false
+	for !gameOver {
 		round++
 		if round > 1 {
 			appendMessageLog(&messageLog, strings.Repeat("-", layoutWidth))
@@ -148,7 +149,7 @@ func main() {
 		}
 
 		// Players taking turns
-		for i := range p.player {
+		for i := 0; i < len(p.player); i++ {
 
 			currentPlayer := &p.player[i]
 			appendMessageLog(&messageLog, fmt.Sprintf("Game Master: Player %d's turn", currentPlayer.id))
@@ -208,11 +209,14 @@ func main() {
 				currentPlayer.score++
 				appendMessageLog(&messageLog, fmt.Sprintf("Game Master: Player %d has collected all 4 cards of rank %s and scored 1 point!", currentPlayer.id, rankGuess))
 			}
-		}
 
-		// Check if the game is over
-		if isGameOver(p.player[0].score, p.player[1].score, p.player[2].score, p.player[3].score) {
-			break
+			if isGameOver(p.player[0].score, p.player[1].score, p.player[2].score, p.player[3].score) {
+				gameOver = true
+				break
+			}
+
+			appendMessageLog(&messageLog, fmt.Sprintf("Game Master: Player %d guessed correctly and takes another turn", currentPlayer.id))
+			i-- // Same player takes another turn
 		}
 	}
 

@@ -39,7 +39,7 @@ cards. Score points are granted for each collection of four cards of each rank.
 [x] Bots  
 [x] Improved logging  
 [x] Improved UI  
-[ ] Take another turn if guessed correctly  
+[x] Take another turn if guessed correctly  
 [ ] Guess card suits after correctly guessing number of cards
 
 <img src="./screenshot.png"/>
