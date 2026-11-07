@@ -124,6 +124,17 @@ func isGameOver(scores ...int) bool {
 	return totalScore == 13
 }
 
+// awardCompleteSets scores and removes any complete sets a player already
+// holds, such as ones dealt at the start of the game.
+func awardCompleteSets(p *player, messageLog *[]string) {
+	for _, rank := range ranks {
+		if checkForCompleteSet(&p.hand, rank) {
+			p.score++
+			appendMessageLog(messageLog, fmt.Sprintf("Game Master: Player %d was dealt all 4 cards of rank %s and scored 1 point!", p.id, rank))
+		}
+	}
+}
+
 // main game loop
 func main() {
 	// Generate and shuffle the deck
@@ -143,6 +154,11 @@ func main() {
 			{id: 3, hand: hand3, score: 0},
 			{id: 4, hand: hand4, score: 0},
 		},
+	}
+
+	// Score any complete sets players were dealt up front.
+	for i := range p.player {
+		awardCompleteSets(&p.player[i], &messageLog)
 	}
 
 	// Game loop
