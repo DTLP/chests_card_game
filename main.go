@@ -1,14 +1,78 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"math/rand"
+	"os"
+	"strconv"
 	"strings"
 )
 
 const (
 	logMessageLimit = 30
 )
+
+var stdin = bufio.NewScanner(os.Stdin)
+
+// readInput reads a single line from standard input and trims surrounding
+// whitespace.
+func readInput() string {
+	if !stdin.Scan() {
+		fmt.Println("\nInput closed. Exiting.")
+		os.Exit(0)
+	}
+	return strings.TrimSpace(stdin.Text())
+}
+
+// isAllowedRank reports whether rank is one of the game's valid ranks.
+func isAllowedRank(rank string) bool {
+	for _, r := range ranks {
+		if r == rank {
+			return true
+		}
+	}
+	return false
+}
+
+// promptPlayerChoice asks the human player which opponent to talk to and
+// repeats the prompt until they enter 2, 3 or 4.
+func promptPlayerChoice() int {
+	for {
+		fmt.Print("Which player do you want to talk to? (2, 3 or 4): ")
+		choice, err := strconv.Atoi(readInput())
+		if err == nil && choice >= 2 && choice <= 4 {
+			return choice
+		}
+		fmt.Println("Invalid player choice. Please enter 2, 3 or 4.")
+	}
+}
+
+// promptRank asks the human player for a card rank and repeats the prompt
+// until they enter a valid rank.
+func promptRank() string {
+	for {
+		fmt.Print("Enter the card rank you want to ask about (A, 2, 3, ..., K): ")
+		rank := strings.ToUpper(readInput())
+		if isAllowedRank(rank) {
+			return rank
+		}
+		fmt.Println("Invalid rank. Please enter one of: A, 2-10, J, Q or K.")
+	}
+}
+
+// promptCount asks the human player how many cards of rank the target player
+// has and repeats the prompt until they enter a number between 1 and 4.
+func promptCount(rank string, targetID int) int {
+	for {
+		fmt.Printf("How many %s cards does Player %d have? ", rank, targetID)
+		count, err := strconv.Atoi(readInput())
+		if err == nil && count >= 1 && count <= 4 {
+			return count
+		}
+		fmt.Println("Invalid count. Please enter a number between 1 and 4.")
+	}
+}
 
 // clearScreen clears the terminal screen.
 func clearScreen() {
@@ -94,24 +158,11 @@ func main() {
 				// Print each player's hand
 				printHand("Your hand", p.player[0].hand) // Human player
 
-				var playerChoice int
-				fmt.Print("Which player do you want to talk to? (2, 3 or 4): ")
-				fmt.Scanln(&playerChoice)
-
-				if playerChoice < 2 || playerChoice > 4 {
-					fmt.Println("Invalid player choice. Please try again.")
-					continue
-				}
-
-				// convert player id to index
+				playerChoice := promptPlayerChoice()
 				selectedPlayer = &p.player[playerChoice-1]
 
-				fmt.Print("Enter the card rank you want to ask about (A, 2, 3, ..., K): ")
-				fmt.Scanln(&rankGuess)
-				rankGuess = strings.ToUpper(rankGuess)
-
-				fmt.Printf("How many %s cards does Player %d have? ", rankGuess, selectedPlayer.id)
-				fmt.Scanln(&countGuess)
+				rankGuess = promptRank()
+				countGuess = promptCount(rankGuess, selectedPlayer.id)
 			default:
 				// Bot randomly chooses which player to talk to
 				selectedPlayerIndex := selectAnotherRandomPlayer(currentPlayer.id)
