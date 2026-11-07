@@ -152,8 +152,6 @@ func main() {
 		round++
 		if round > 1 {
 			appendMessageLog(&messageLog, strings.Repeat("-", layoutWidth))
-			appendMessageLog(&messageLog, fmt.Sprintf("Round %d", round))
-			appendMessageLog(&messageLog, strings.Repeat("-", layoutWidth))
 		}
 
 		// Players taking turns
