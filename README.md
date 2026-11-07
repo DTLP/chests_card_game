@@ -1,13 +1,13 @@
 ```
 ░░██████████████████████████░░  # Chests - A card game
 ░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░
-  ██▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒    A simple card game in your terminal. Play against 3 bots to collect as many
-  ██▓▓▓▓▓▓          ██▓▓▓▓▓▓░░  complete sets of four cards (chests) of each rank as possible. Each player
-        ░░  ▓▓▓▓██  ░░░░░░░░░░  starts with 13 cards, and the game ends when all 13 sets are collected.
-░░░░░░░░░░░░██████░░░░░░░░░░░░
-░░████████░░░░░░░░░░████████░░  Observing the responses and recalling previous turns will help you deduce
-░░██▓▓▓▓▓▓████████████▓▓▓▓▓▓░░  who holds which cards.
-░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░
+  ██▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒    A simple card game in your terminal. Play against 3 bots to
+  ██▓▓▓▓▓▓          ██▓▓▓▓▓▓░░  collect as many complete sets of four cards (chests) of each
+        ░░  ▓▓▓▓██  ░░░░░░░░░░  rank as possible. Each player starts with 13 cards, and the
+░░░░░░░░░░░░██████░░░░░░░░░░░░  game ends when all 13 sets are collected.
+░░████████░░░░░░░░░░████████░░
+░░██▓▓▓▓▓▓████████████▓▓▓▓▓▓░░  Observing the responses and recalling the previous turns
+░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░  will help you deduce who holds which cards
 ░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░
 ░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░
 ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
@@ -37,7 +37,7 @@ cards. Score points are granted for each collection of four cards of each rank.
 [x] Taking cards from others  
 [x] Score board  
 [x] Bots  
-[x] Improved loggging  
+[x] Improved logging  
 [x] Improved UI  
 [ ] Take another turn if guessed correctly  
 [ ] Guess card suits after correctly guessing number of cards
