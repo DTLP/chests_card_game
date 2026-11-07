@@ -66,7 +66,7 @@ func promptRank() string {
 // has and repeats the prompt until they enter a number between 1 and 4.
 func promptCount(rank string, targetID int) int {
 	for {
-		fmt.Printf("How many %s cards does Player %d have? ", rank, targetID)
+		fmt.Printf("How many %s cards do you think Player %d has? ", rank, targetID)
 		count, err := strconv.Atoi(readInput())
 		if err == nil && count >= 1 && count <= 4 {
 			return count
