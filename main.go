@@ -11,6 +11,7 @@ import (
 
 const (
 	logMessageLimit = 30
+	layoutWidth     = 115
 )
 
 var stdin = bufio.NewScanner(os.Stdin)
@@ -99,14 +100,14 @@ func printLayout(p *players, messageLog []string) {
 	fmt.Printf("Player 2: %d\n", p.player[1].score)
 	fmt.Printf("Player 3: %d\n", p.player[2].score)
 	fmt.Printf("Player 4: %d\n", p.player[3].score)
-	fmt.Println(strings.Repeat("=", 115))
+	fmt.Println(strings.Repeat("=", layoutWidth))
 
 	// Print chat messages (middle)
 	for _, message := range messageLog {
 		fmt.Println(message)
 	}
 
-	fmt.Println(strings.Repeat("=", 115))
+	fmt.Println(strings.Repeat("=", layoutWidth))
 }
 
 // isGameOver checks if the sum of all players' scores equals 13, indicating the game is over.
@@ -137,7 +138,15 @@ func main() {
 	}
 
 	// Game loop
+	round := 0
 	for {
+		round++
+		if round > 1 {
+			appendMessageLog(&messageLog, strings.Repeat("-", layoutWidth))
+			appendMessageLog(&messageLog, fmt.Sprintf("Round %d", round))
+			appendMessageLog(&messageLog, strings.Repeat("-", layoutWidth))
+		}
+
 		// Players taking turns
 		for i := range p.player {
 
