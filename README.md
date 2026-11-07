@@ -30,16 +30,4 @@ On each turn your task is to challenge an opponent by guessing how many cards of
 a certain rank they have in their hand. If your guess is correct, you take their
 cards. Score points are granted for each collection of four cards of each rank.
 
-## TODO:
-[x] Draw player's hand  
-[x] 4 players  
-[x] Taking guesses  
-[x] Taking cards from others  
-[x] Score board  
-[x] Bots  
-[x] Improved logging  
-[x] Improved UI  
-[x] Take another turn if guessed correctly  
-[ ] Guess card suits after correctly guessing number of cards
-
 <img src="./screenshot.png"/>
