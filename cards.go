@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -67,6 +68,10 @@ func distributeCards(deck []Card) ([][]string, [][]string, [][]string, [][]strin
 		player3 = append(player3, generateCard(deck[i+26]))
 		player4 = append(player4, generateCard(deck[i+39]))
 	}
+	sortHand(player1)
+	sortHand(player2)
+	sortHand(player3)
+	sortHand(player4)
 	return player1, player2, player3, player4
 }
 
@@ -75,6 +80,27 @@ var (
 	suits = []string{"♠", "❤", "♦", "♣"}
 	ranks = []string{"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"}
 )
+
+// rankOrder returns the sort position of a rank, treating the Ace as the
+// highest card.
+func rankOrder(rank string) int {
+	if rank == "A" {
+		return len(ranks)
+	}
+	for i, r := range ranks {
+		if r == rank {
+			return i
+		}
+	}
+	return -1
+}
+
+// sortHand sorts a hand by rank from smallest to largest.
+func sortHand(hand [][]string) {
+	sort.SliceStable(hand, func(i, j int) bool {
+		return rankOrder(ExtractRank(hand[i][0])) < rankOrder(ExtractRank(hand[j][0]))
+	})
+}
 
 // drawCardRow creates a row for each card line in a horizontal format
 func drawCardRow(cards [][]string, row int) string {
@@ -153,6 +179,9 @@ func moveCards(from *[][]string, to *[][]string, rank string) {
 	*from = remainingCards
 	// Add the found cards to the 'to' player's hand
 	*to = append(*to, cardsToMove...)
+
+	sortHand(*from)
+	sortHand(*to)
 }
 
 // checkForCompleteSet checks if a player has collected all 4 cards of a rank
