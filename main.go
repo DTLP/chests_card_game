@@ -12,6 +12,7 @@ import (
 const (
 	logMessageLimit = 30
 	layoutWidth     = 115
+	winningScore    = 5
 )
 
 var stdin = bufio.NewScanner(os.Stdin)
@@ -110,9 +111,16 @@ func printLayout(p *players, messageLog []string) {
 	fmt.Println(strings.Repeat("=", layoutWidth))
 }
 
-// isGameOver checks if the sum of all players' scores equals 13, indicating the game is over.
-func isGameOver(player1Score, player2Score, player3Score, player4Score int) bool {
-	totalScore := player1Score + player2Score + player3Score + player4Score
+// isGameOver checks if a player has collected winningScore chests or all 13
+// sets have been collected, indicating the game is over.
+func isGameOver(scores ...int) bool {
+	totalScore := 0
+	for _, score := range scores {
+		if score >= winningScore {
+			return true
+		}
+		totalScore += score
+	}
 	return totalScore == 13
 }
 
@@ -226,4 +234,17 @@ func main() {
 	fmt.Printf("Player 2: %d\n", p.player[1].score)
 	fmt.Printf("Player 3: %d\n", p.player[2].score)
 	fmt.Printf("Player 4: %d\n", p.player[3].score)
+
+	maxScore := 0
+	for _, pl := range p.player {
+		if pl.score > maxScore {
+			maxScore = pl.score
+		}
+	}
+	fmt.Printf("\nPlayer(s) with %d chests win:\n", maxScore)
+	for _, pl := range p.player {
+		if pl.score == maxScore {
+			fmt.Printf("Player %d\n", pl.id)
+		}
+	}
 }

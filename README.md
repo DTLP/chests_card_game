@@ -3,8 +3,8 @@
 ░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░
   ██▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒▒    A simple card game in your terminal. Play against 3 bots to
   ██▓▓▓▓▓▓          ██▓▓▓▓▓▓░░  collect as many complete sets of four cards (chests) of each
-        ░░  ▓▓▓▓██  ░░░░░░░░░░  rank as possible. Each player starts with 13 cards, and the
-░░░░░░░░░░░░██████░░░░░░░░░░░░  game ends when all 13 sets are collected.
+        ░░  ▓▓▓▓██  ░░░░░░░░░░  rank as possible. Each player starts with 13 cards. The
+░░░░░░░░░░░░██████░░░░░░░░░░░░  first player to collect 5 chests wins.
 ░░████████░░░░░░░░░░████████░░
 ░░██▓▓▓▓▓▓████████████▓▓▓▓▓▓░░  Observing the responses and recalling the previous turns
 ░░██▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░  will help you deduce who holds which cards
