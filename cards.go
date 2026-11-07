@@ -28,7 +28,7 @@ func generateDeck() []Card {
 	for _, suit := range suits {
 		for _, rank := range ranks {
 			color := blackFg
-			if suit == "♥" || suit == "♦" {
+			if suit == "❤" || suit == "♦" {
 				color = redFg
 			}
 			deck = append(deck, Card{rank: rank, suit: suit, color: color})
@@ -44,7 +44,7 @@ func generateDeck() []Card {
 // generateCard creates a string representation of a card
 func generateCard(card Card) []string {
 	color := blackFg
-	if card.suit == "♥" || card.suit == "♦" {
+	if card.suit == "❤" || card.suit == "♦" {
 		color = redFg
 	}
 
@@ -72,7 +72,7 @@ func distributeCards(deck []Card) ([][]string, [][]string, [][]string, [][]strin
 
 // Available suits and ranks
 var (
-	suits = []string{"♠", "♥", "♦", "♣"}
+	suits = []string{"♠", "❤", "♦", "♣"}
 	ranks = []string{"A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"}
 )
 
