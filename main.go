@@ -7,12 +7,15 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 const (
 	logMessageLimit = 30
+	logViewHeight   = 18
 	layoutWidth     = 115
 	winningScore    = 5
+	typeDelay       = 15 * time.Millisecond
 )
 
 var stdin = bufio.NewScanner(os.Stdin)
@@ -81,34 +84,111 @@ func clearScreen() {
 	fmt.Print("\033[H\033[2J") // ANSI escape code to clear screen and move cursor to top
 }
 
-func appendMessageLog(log *[]string, message string) []string {
-	if len(*log) >= logMessageLimit {
-		*log = (*log)[1:]
-	}
-
-	*log = append(*log, message)
-
-	return *log
+// gameLog keeps the recent game messages and tracks how many have been shown.
+type gameLog struct {
+	messages []string
+	shown    int
 }
 
-// printLayout prints the updated game layout after each turn.
-func printLayout(p *players, messageLog []string) {
+// add appends a message to the log, dropping the oldest when the log is full.
+func (l *gameLog) add(message string) {
+	if len(l.messages) >= logMessageLimit {
+		l.messages = l.messages[1:]
+		if l.shown > 0 {
+			l.shown--
+		}
+	}
+	l.messages = append(l.messages, message)
+}
+
+// view returns the messages currently visible in the log pane and how many of
+// them have already been shown. Only the most recent logViewHeight messages
+// are visible, so older messages scroll off the top.
+func (l *gameLog) view() (window []string, shown int) {
+	window = l.messages
+	if len(window) > logViewHeight {
+		window = window[len(window)-logViewHeight:]
+	}
+	shown = l.shown - (len(l.messages) - len(window))
+	if shown < 0 {
+		shown = 0
+	}
+	if shown > len(window) {
+		shown = len(window)
+	}
+	return window, shown
+}
+
+// typewrite prints a message one character at a time at a readable pace.
+func typewrite(message string) {
+	for _, r := range message {
+		fmt.Printf("%c", r)
+		time.Sleep(typeDelay)
+	}
+	fmt.Println()
+}
+
+// moveCursorUp moves the cursor up n lines.
+func moveCursorUp(n int) {
+	if n > 0 {
+		fmt.Printf("\033[%dA", n)
+	}
+}
+
+// moveCursorDown moves the cursor down n lines.
+func moveCursorDown(n int) {
+	if n > 0 {
+		fmt.Printf("\033[%dB", n)
+	}
+}
+
+// handHeight returns the number of lines printHand outputs for a hand.
+func handHeight(cards [][]string) int {
+	blocks := (len(cards) + 12) / 13
+	height := 1 + blocks*5 + 1
+	if len(cards) > 13 {
+		height++
+	}
+	return height
+}
+
+// printLayout prints the updated game layout after each turn. The score and
+// the player's hand stay on screen while only the new log messages are typed
+// out in the log area between the separators.
+func printLayout(p *players, log *gameLog, hand [][]string) {
 	clearScreen()
 
-	// Print score board (top)
-	fmt.Println("Score board")
-	fmt.Printf("Player 1: %d\n", p.player[0].score)
-	fmt.Printf("Player 2: %d\n", p.player[1].score)
-	fmt.Printf("Player 3: %d\n", p.player[2].score)
-	fmt.Printf("Player 4: %d\n", p.player[3].score)
+	// Print score board (top) on a single line.
+	fmt.Printf("Score - Player 1: %d | Player 2: %d | Player 3: %d | Player 4: %d\n",
+		p.player[0].score, p.player[1].score, p.player[2].score, p.player[3].score)
 	fmt.Println(strings.Repeat("=", layoutWidth))
 
-	// Print chat messages (middle)
-	for _, message := range messageLog {
+	// Show only the most recent messages so old lines scroll off the top.
+	window, shown := log.view()
+	newMessages := window[shown:]
+
+	// Print already-seen messages instantly and reserve a line for each new
+	// message so the hand below stays in place.
+	for _, message := range window[:shown] {
 		fmt.Println(message)
+	}
+	for range newMessages {
+		fmt.Println()
 	}
 
 	fmt.Println(strings.Repeat("=", layoutWidth))
+
+	// Print the player's hand (bottom), which remains visible throughout.
+	printHand("Your hand", hand)
+
+	// Type the new messages into their reserved lines, then return the cursor
+	// below the hand.
+	moveCursorUp(len(window) + 1 + handHeight(hand) - shown)
+	for _, message := range newMessages {
+		typewrite(message)
+	}
+	log.shown = len(log.messages)
+	moveCursorDown(1 + handHeight(hand))
 }
 
 // isGameOver checks if a player has collected winningScore chests or all 13
@@ -126,11 +206,11 @@ func isGameOver(scores ...int) bool {
 
 // awardCompleteSets scores and removes any complete sets a player already
 // holds, such as ones dealt at the start of the game.
-func awardCompleteSets(p *player, messageLog *[]string) {
+func awardCompleteSets(p *player, log *gameLog) {
 	for _, rank := range ranks {
 		if checkForCompleteSet(&p.hand, rank) {
 			p.score++
-			appendMessageLog(messageLog, fmt.Sprintf("Game Master: Player %d was dealt all 4 cards of rank %s and scored 1 point!", p.id, rank))
+			log.add(fmt.Sprintf("Game Master: Player %d was dealt all 4 cards of rank %s and scored 1 point!", p.id, rank))
 		}
 	}
 }
@@ -140,8 +220,7 @@ func main() {
 	// Generate and shuffle the deck
 	deck := generateDeck()
 
-	// var messageLog []string
-	messageLog := make([]string, logMessageLimit)
+	log := &gameLog{}
 
 	// Distribute cards to players
 	hand1, hand2, hand3, hand4 := distributeCards(deck)
@@ -158,7 +237,7 @@ func main() {
 
 	// Score any complete sets players were dealt up front.
 	for i := range p.player {
-		awardCompleteSets(&p.player[i], &messageLog)
+		awardCompleteSets(&p.player[i], log)
 	}
 
 	// Game loop
@@ -167,16 +246,16 @@ func main() {
 	for !gameOver {
 		round++
 		if round > 1 {
-			appendMessageLog(&messageLog, strings.Repeat("-", layoutWidth))
+			log.add(strings.Repeat("-", layoutWidth))
 		}
 
 		// Players taking turns
 		for i := 0; i < len(p.player); i++ {
 
 			currentPlayer := &p.player[i]
-			appendMessageLog(&messageLog, fmt.Sprintf("Game Master: Player %d's turn", currentPlayer.id))
+			log.add(fmt.Sprintf("Game Master: Player %d's turn", currentPlayer.id))
 
-			printLayout(&p, messageLog)
+			printLayout(&p, log, p.player[0].hand)
 
 			var selectedPlayer *player
 			var rankGuess string
@@ -186,9 +265,6 @@ func main() {
 			switch currentPlayer.id {
 			case 1:
 				// Player 1's turn - human player
-
-				// Print each player's hand
-				printHand("Your hand", p.player[0].hand) // Human player
 
 				playerChoice := promptPlayerChoice()
 				selectedPlayer = &p.player[playerChoice-1]
@@ -208,28 +284,28 @@ func main() {
 			}
 
 			actualCount := countCardsOfRank(selectedPlayer.hand, rankGuess)
-			appendMessageLog(&messageLog, fmt.Sprintf("   Player %d: Player %d, do you have any cards of rank %s?", currentPlayer.id, selectedPlayer.id, rankGuess))
+			log.add(fmt.Sprintf("   Player %d: Player %d, do you have any cards of rank %s?", currentPlayer.id, selectedPlayer.id, rankGuess))
 
 			if actualCount == 0 {
-				appendMessageLog(&messageLog, fmt.Sprintf("   Player %d: No", selectedPlayer.id))
+				log.add(fmt.Sprintf("   Player %d: No", selectedPlayer.id))
 				continue
 			}
-			appendMessageLog(&messageLog, fmt.Sprintf("   Player %d: Yes", selectedPlayer.id))
+			log.add(fmt.Sprintf("   Player %d: Yes", selectedPlayer.id))
 
-			appendMessageLog(&messageLog, fmt.Sprintf("   Player %d: Player %d, do you have %d of these cards?", currentPlayer.id, selectedPlayer.id, countGuess))
+			log.add(fmt.Sprintf("   Player %d: Player %d, do you have %d of these cards?", currentPlayer.id, selectedPlayer.id, countGuess))
 			if countGuess != actualCount {
-				appendMessageLog(&messageLog, fmt.Sprintf("   Player %d: No", selectedPlayer.id))
+				log.add(fmt.Sprintf("   Player %d: No", selectedPlayer.id))
 				continue
 			}
 
-			appendMessageLog(&messageLog, fmt.Sprintf("   Player %d: Yes", selectedPlayer.id))
+			log.add(fmt.Sprintf("   Player %d: Yes", selectedPlayer.id))
 
-			appendMessageLog(&messageLog, fmt.Sprintf("Game Master: Player %d takes %d cards of rank %s from Player %d", currentPlayer.id, actualCount, rankGuess, selectedPlayer.id))
+			log.add(fmt.Sprintf("Game Master: Player %d takes %d cards of rank %s from Player %d", currentPlayer.id, actualCount, rankGuess, selectedPlayer.id))
 			moveCards(&selectedPlayer.hand, &currentPlayer.hand, rankGuess)
 
 			if checkForCompleteSet(&currentPlayer.hand, rankGuess) {
 				currentPlayer.score++
-				appendMessageLog(&messageLog, fmt.Sprintf("Game Master: Player %d has collected all 4 cards of rank %s and scored 1 point!", currentPlayer.id, rankGuess))
+				log.add(fmt.Sprintf("Game Master: Player %d has collected all 4 cards of rank %s and scored 1 point!", currentPlayer.id, rankGuess))
 			}
 
 			if isGameOver(p.player[0].score, p.player[1].score, p.player[2].score, p.player[3].score) {
@@ -237,10 +313,13 @@ func main() {
 				break
 			}
 
-			appendMessageLog(&messageLog, fmt.Sprintf("Game Master: Player %d guessed correctly and takes another turn", currentPlayer.id))
+			log.add(fmt.Sprintf("Game Master: Player %d guessed correctly and takes another turn", currentPlayer.id))
 			i-- // Same player takes another turn
 		}
 	}
+
+	// Render any messages added on the final turn.
+	printLayout(&p, log, p.player[0].hand)
 
 	// Display final score
 	fmt.Println("Game over!\n\nFinal Scores:")
