@@ -40,42 +40,49 @@ func isAllowedRank(rank string) bool {
 	return false
 }
 
+// promptInput renders the log with prompt on the last line of the pane, then
+// reads the player's response.
+func promptInput(p *players, log *gameLog, hand [][]string, prompt string) string {
+	printLayout(p, log, hand, prompt)
+	return readInput()
+}
+
 // promptPlayerChoice asks the human player which opponent to talk to and
 // repeats the prompt until they enter 2, 3 or 4.
-func promptPlayerChoice() int {
+func promptPlayerChoice(p *players, log *gameLog, hand [][]string) int {
+	prompt := "Which player do you want to talk to? (2, 3 or 4): "
 	for {
-		fmt.Print("Which player do you want to talk to? (2, 3 or 4): ")
-		choice, err := strconv.Atoi(readInput())
+		choice, err := strconv.Atoi(promptInput(p, log, hand, prompt))
 		if err == nil && choice >= 2 && choice <= 4 {
 			return choice
 		}
-		fmt.Println("Invalid player choice. Please enter 2, 3 or 4.")
+		prompt = "Invalid choice. Which player do you want to talk to? (2, 3 or 4): "
 	}
 }
 
 // promptRank asks the human player for a card rank and repeats the prompt
 // until they enter a valid rank.
-func promptRank() string {
+func promptRank(p *players, log *gameLog, hand [][]string) string {
+	prompt := "Enter the card rank you want to ask about (A, 2, 3, ..., K): "
 	for {
-		fmt.Print("Enter the card rank you want to ask about (A, 2, 3, ..., K): ")
-		rank := strings.ToUpper(readInput())
+		rank := strings.ToUpper(promptInput(p, log, hand, prompt))
 		if isAllowedRank(rank) {
 			return rank
 		}
-		fmt.Println("Invalid rank. Please enter one of: A, 2-10, J, Q or K.")
+		prompt = "Invalid rank. Enter the card rank you want to ask about (A, 2, ..., K): "
 	}
 }
 
 // promptCount asks the human player how many cards of rank the target player
 // has and repeats the prompt until they enter a number between 1 and 4.
-func promptCount(rank string, targetID int) int {
+func promptCount(p *players, log *gameLog, hand [][]string, rank string, targetID int) int {
+	prompt := fmt.Sprintf("How many %s cards do you think Player %d has? ", rank, targetID)
 	for {
-		fmt.Printf("How many %s cards do you think Player %d has? ", rank, targetID)
-		count, err := strconv.Atoi(readInput())
+		count, err := strconv.Atoi(promptInput(p, log, hand, prompt))
 		if err == nil && count >= 1 && count <= 4 {
 			return count
 		}
-		fmt.Println("Invalid count. Please enter a number between 1 and 4.")
+		prompt = fmt.Sprintf("Invalid count. How many %s cards do you think Player %d has? ", rank, targetID)
 	}
 }
 
@@ -101,13 +108,15 @@ func (l *gameLog) add(message string) {
 	l.messages = append(l.messages, message)
 }
 
-// view returns the messages currently visible in the log pane and how many of
-// them have already been shown. Only the most recent logViewHeight messages
-// are visible, so older messages scroll off the top.
-func (l *gameLog) view() (window []string, shown int) {
+// view returns up to max messages currently visible in the log pane and how
+// many of them have already been shown. Older messages scroll off the top.
+func (l *gameLog) view(max int) (window []string, shown int) {
+	if max < 0 {
+		max = 0
+	}
 	window = l.messages
-	if len(window) > logViewHeight {
-		window = window[len(window)-logViewHeight:]
+	if len(window) > max {
+		window = window[len(window)-max:]
 	}
 	shown = l.shown - (len(l.messages) - len(window))
 	if shown < 0 {
@@ -155,7 +164,7 @@ func handHeight(cards [][]string) int {
 // printLayout prints the updated game layout after each turn. The score and
 // the player's hand stay on screen while only the new log messages are typed
 // out in the log area between the separators.
-func printLayout(p *players, log *gameLog, hand [][]string) {
+func printLayout(p *players, log *gameLog, hand [][]string, prompt string) {
 	clearScreen()
 
 	// Print score board (top) on a single line.
@@ -163,8 +172,13 @@ func printLayout(p *players, log *gameLog, hand [][]string) {
 		p.player[0].score, p.player[1].score, p.player[2].score, p.player[3].score)
 	fmt.Println(strings.Repeat("=", layoutWidth))
 
-	// Show only the most recent messages so old lines scroll off the top.
-	window, shown := log.view()
+	// Show only the most recent messages so old lines scroll off the top. The
+	// prompt, when present, occupies the last line of the pane.
+	maxMessages := logViewHeight
+	if prompt != "" {
+		maxMessages--
+	}
+	window, shown := log.view(maxMessages)
 	newMessages := window[shown:]
 
 	// Print already-seen messages instantly and reserve a line for each new
@@ -175,20 +189,33 @@ func printLayout(p *players, log *gameLog, hand [][]string) {
 	for range newMessages {
 		fmt.Println()
 	}
+	if prompt != "" {
+		fmt.Println()
+	}
 
 	fmt.Println(strings.Repeat("=", layoutWidth))
 
 	// Print the player's hand (bottom), which remains visible throughout.
 	printHand("Your hand", hand)
 
-	// Type the new messages into their reserved lines, then return the cursor
-	// below the hand.
-	moveCursorUp(len(window) + 1 + handHeight(hand) - shown)
+	// Type the new messages into their reserved lines.
+	paneHeight := len(window)
+	if prompt != "" {
+		paneHeight++
+	}
+	moveCursorUp(paneHeight + 1 + handHeight(hand) - shown)
 	for _, message := range newMessages {
 		typewrite(message)
 	}
 	log.shown = len(log.messages)
-	moveCursorDown(1 + handHeight(hand))
+
+	if prompt != "" {
+		// The cursor is on the reserved prompt line; show the prompt and leave
+		// the cursor there for input.
+		fmt.Print(prompt)
+	} else {
+		moveCursorDown(1 + handHeight(hand))
+	}
 }
 
 // isGameOver checks if a player has collected winningScore chests or all 13
@@ -255,8 +282,6 @@ func main() {
 			currentPlayer := &p.player[i]
 			log.add(fmt.Sprintf("Game Master: Player %d's turn", currentPlayer.id))
 
-			printLayout(&p, log, p.player[0].hand)
-
 			var selectedPlayer *player
 			var rankGuess string
 			var countGuess int
@@ -266,21 +291,18 @@ func main() {
 			case 1:
 				// Player 1's turn - human player
 
-				playerChoice := promptPlayerChoice()
+				playerChoice := promptPlayerChoice(&p, log, p.player[0].hand)
 				selectedPlayer = &p.player[playerChoice-1]
 
-				rankGuess = promptRank()
-				countGuess = promptCount(rankGuess, selectedPlayer.id)
+				rankGuess = promptRank(&p, log, p.player[0].hand)
 			default:
 				// Bot randomly chooses which player to talk to
+				printLayout(&p, log, p.player[0].hand, "")
 				selectedPlayerIndex := selectAnotherRandomPlayer(currentPlayer.id)
 				selectedPlayer = &p.player[selectedPlayerIndex]
 
 				// Bot randomly chooses a rank to ask about
 				rankGuess = ranks[rand.Intn(len(ranks))]
-
-				// Bot randomly guesses the count
-				countGuess = rand.Intn(3) + 1 // Guess between 1 and 3
 			}
 
 			actualCount := countCardsOfRank(selectedPlayer.hand, rankGuess)
@@ -291,6 +313,12 @@ func main() {
 				continue
 			}
 			log.add(fmt.Sprintf("   Player %d: Yes", selectedPlayer.id))
+
+			if currentPlayer.id == 1 {
+				countGuess = promptCount(&p, log, p.player[0].hand, rankGuess, selectedPlayer.id)
+			} else {
+				countGuess = rand.Intn(3) + 1 // Guess between 1 and 3
+			}
 
 			log.add(fmt.Sprintf("   Player %d: Player %d, do you have %d of these cards?", currentPlayer.id, selectedPlayer.id, countGuess))
 			if countGuess != actualCount {
@@ -319,7 +347,7 @@ func main() {
 	}
 
 	// Render any messages added on the final turn.
-	printLayout(&p, log, p.player[0].hand)
+	printLayout(&p, log, p.player[0].hand, "")
 
 	// Display final score
 	fmt.Println("Game over!\n\nFinal Scores:")
