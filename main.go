@@ -74,12 +74,12 @@ func promptRank(p *players, log *gameLog, hand [][]string) string {
 }
 
 // promptCount asks the human player how many cards of rank the target player
-// has and repeats the prompt until they enter a number between 1 and 4.
+// has and repeats the prompt until they enter a number between 1 and 3.
 func promptCount(p *players, log *gameLog, hand [][]string, rank string, targetID int) int {
 	prompt := fmt.Sprintf("How many %s cards do you think Player %d has? ", rank, targetID)
 	for {
 		count, err := strconv.Atoi(promptInput(p, log, hand, prompt))
-		if err == nil && count >= 1 && count <= 4 {
+		if err == nil && count >= 1 && count <= 3 {
 			return count
 		}
 		prompt = fmt.Sprintf("Invalid count. How many %s cards do you think Player %d has? ", rank, targetID)
@@ -218,6 +218,26 @@ func printLayout(p *players, log *gameLog, hand [][]string, prompt string) {
 	}
 }
 
+// promptSuits asks the human player to name every suit among count cards in a
+// single line, repeating the prompt until the entry is valid.
+func promptSuits(p *players, log *gameLog, hand [][]string, count int) []string {
+	legend := "s=♠, h=❤, d=♦, c=♣"
+	prompt := fmt.Sprintf("Name the %d suit(s) (%s): ", count, legend)
+	for {
+		guessed := parseSuits(promptInput(p, log, hand, prompt))
+		switch {
+		case guessed == nil:
+			prompt = fmt.Sprintf("Invalid suit. Name the %d suit(s) (%s): ", count, legend)
+		case len(guessed) != count:
+			prompt = fmt.Sprintf("Enter %d suit(s). Name the %d suit(s) (%s): ", count, count, legend)
+		case hasDuplicateSuits(guessed):
+			prompt = fmt.Sprintf("No duplicates. Name the %d suit(s) (%s): ", count, legend)
+		default:
+			return guessed
+		}
+	}
+}
+
 // isGameOver checks if a player has collected winningScore chests or all 13
 // sets have been collected, indicating the game is over.
 func isGameOver(scores ...int) bool {
@@ -326,6 +346,25 @@ func main() {
 				continue
 			}
 
+			log.add(fmt.Sprintf("   Player %d: Yes", selectedPlayer.id))
+
+			actualSuits := suitsOfRank(selectedPlayer.hand, rankGuess)
+			var guessedSuits []string
+			if currentPlayer.id == 1 {
+				guessedSuits = promptSuits(&p, log, p.player[0].hand, actualCount)
+			} else {
+				guessedSuits = randomSuits(actualCount)
+			}
+
+			if len(guessedSuits) == 1 {
+				log.add(fmt.Sprintf("   Player %d: Is it a %s?", currentPlayer.id, guessedSuits[0]))
+			} else {
+				log.add(fmt.Sprintf("   Player %d: Are they %s?", currentPlayer.id, strings.Join(guessedSuits, ", ")))
+			}
+			if !sameSuits(guessedSuits, actualSuits) {
+				log.add(fmt.Sprintf("   Player %d: No", selectedPlayer.id))
+				continue
+			}
 			log.add(fmt.Sprintf("   Player %d: Yes", selectedPlayer.id))
 
 			log.add(fmt.Sprintf("Game Master: Player %d takes %d cards of rank %s from Player %d", currentPlayer.id, actualCount, rankGuess, selectedPlayer.id))

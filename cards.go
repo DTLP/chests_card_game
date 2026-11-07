@@ -158,6 +158,106 @@ func countCardsOfRank(cards [][]string, rank string) int {
 	return count
 }
 
+// ExtractSuit extracts the suit symbol from a card row, ignoring color codes.
+func ExtractSuit(card string) string {
+	for _, suit := range suits {
+		if strings.Contains(card, suit) {
+			return suit
+		}
+	}
+	return ""
+}
+
+// suitsOfRank returns the suits of every card of the given rank.
+func suitsOfRank(cards [][]string, rank string) []string {
+	var result []string
+	for _, card := range cards {
+		if ExtractRank(card[0]) == rank {
+			result = append(result, ExtractSuit(card[2]))
+		}
+	}
+	return result
+}
+
+// parseSuit converts player input into a suit symbol.
+func parseSuit(input string) string {
+	switch strings.ToLower(strings.TrimSpace(input)) {
+	case "♠", "s", "spade", "spades":
+		return "♠"
+	case "❤", "♥", "h", "heart", "hearts":
+		return "❤"
+	case "♦", "d", "diamond", "diamonds":
+		return "♦"
+	case "♣", "c", "club", "clubs":
+		return "♣"
+	}
+	return ""
+}
+
+// parseSuits parses one or more suits from input, accepting symbols, names, or
+// concatenated letters such as "hs". It returns nil if any part is invalid.
+func parseSuits(input string) []string {
+	fields := strings.FieldsFunc(input, func(r rune) bool {
+		return r == ' ' || r == ',' || r == '\t'
+	})
+	result := []string{}
+	for _, field := range fields {
+		if suit := parseSuit(field); suit != "" {
+			result = append(result, suit)
+			continue
+		}
+		// Handle concatenated single-character suits such as "hs".
+		for _, r := range field {
+			suit := parseSuit(string(r))
+			if suit == "" {
+				return nil
+			}
+			result = append(result, suit)
+		}
+	}
+	return result
+}
+
+// hasDuplicateSuits reports whether list contains the same suit twice.
+func hasDuplicateSuits(list []string) bool {
+	seen := make(map[string]bool, len(list))
+	for _, suit := range list {
+		if seen[suit] {
+			return true
+		}
+		seen[suit] = true
+	}
+	return false
+}
+
+// sameSuits reports whether two suit collections match.
+func sameSuits(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	counts := make(map[string]int, len(a))
+	for _, suit := range a {
+		counts[suit]++
+	}
+	for _, suit := range b {
+		counts[suit]--
+		if counts[suit] < 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// randomSuits returns n distinct randomly chosen suits.
+func randomSuits(n int) []string {
+	perm := rand.Perm(len(suits))
+	result := make([]string, n)
+	for i := 0; i < n; i++ {
+		result[i] = suits[perm[i]]
+	}
+	return result
+}
+
 // moveCards moves cards of a specific rank from one player's hand to another player's hand
 func moveCards(from *[][]string, to *[][]string, rank string) {
 	// Find and remove all cards of the given rank from the 'from' player
